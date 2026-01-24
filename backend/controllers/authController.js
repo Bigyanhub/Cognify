@@ -20,7 +20,7 @@ export const register = async (req, res, next) => {
 
     if (userExists) {
       return res.status(400).json({
-        sucess: false,
+        success: false,
         error:
           userExists.email === email
             ? "Email already registered"
@@ -40,7 +40,7 @@ export const register = async (req, res, next) => {
     const token = generateToken(user._id);
 
     res.status(201).json({
-      sucess: true,
+      success: true,
       data: {
         user: {
           id: user._id,
@@ -63,8 +63,58 @@ export const register = async (req, res, next) => {
 //@access  Public
 export const login = async (req, res, next) => {
   try {
+
+    const { email, password } = req.body;
+
+    //Validate input
+    if (!email || !password) {
+      return res.status(400).json(
+        {
+          success: false,
+          error: " Please provide a email and password",
+          statusCode: 400,
+        });
+    }
+
+    //check for user (include password for comparision)
+    const user = await User.findOne({ email }).select("+password");
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid credentials",
+        statusCode: 401,
+      });
+    }
+
+    //Check password
+    const isMatch = await user.matchPassword(password);
+
+    if(!match){
+      return res.status(401).json({
+        success: false,
+        error: "Invalid credentials",
+        statusCode: 401,
+      });
+    }
+
+    //Generate token
+    const token = generateToken(user._id);
+
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        profileImage: user.profileImafe,
+      },
+      token,
+      message: "Login successful"
+    });
+
   } catch (error) {
-    next(error);
+    next(error)
   }
 };
 
